@@ -228,7 +228,7 @@ async def get_overview():
         total = total_result[0]['total'] if total_result and total_result[0]['total'] else 0
         print(f"🔍 Total: ${total}")
         
-        # Count
+        # Count this month
         count_result = query_db(
             "SELECT COUNT(*) as count FROM expenses WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now')"
         )
@@ -236,7 +236,7 @@ async def get_overview():
         count = count_result[0]['count'] if count_result else 0
         print(f"🔍 Count: {count}")
         
-        # Top categories
+        # Top categories this month
         categories = query_db("""
             SELECT category, SUM(amount) as total, COUNT(*) as count 
             FROM expenses 

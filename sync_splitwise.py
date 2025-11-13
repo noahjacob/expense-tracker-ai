@@ -16,15 +16,22 @@ def sync_expenses(limit=5):
     synced_count = 0
     
     for e in expenses:
-        # Check if user is in this expense
+        # Check if user is in this expense and get their owed share
         user_in_expense = False
+        user_owed_share = 0.0
+        
         for u in e.get("users", []):
             if u.get("user_id") == MY_USER_ID:
                 user_in_expense = True
+                user_owed_share = float(u.get("owed_share", 0.0))
                 break
         
         # Skip if user is not part of this expense
         if not user_in_expense:
+            continue
+        
+        # Skip if user's share is $0 (they don't owe anything)
+        if user_owed_share == 0.0:
             continue
         
         # Get group name if not cached
