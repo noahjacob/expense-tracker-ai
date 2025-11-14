@@ -26,10 +26,12 @@ def init_db():
         conn.executescript(schema)
 
 def add_personal_expense(description: str, amount: float, category: str = None):
+    from datetime import datetime
+    today = datetime.now().strftime('%Y-%m-%d')
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO expenses (description, amount, category, source) VALUES (?, ?, ?, 'personal')",
-            (description, amount, category)
+            "INSERT INTO expenses (description, amount, category, source, date) VALUES (?, ?, ?, 'personal', ?)",
+            (description, amount, category, today)
         )
         conn.commit()
 
@@ -40,6 +42,23 @@ def list_expenses(limit=10):
             (limit,)
         )
         return cur.fetchall()
+
+def delete_expense(expense_id: int):
+    """Delete an expense by ID."""
+    with get_conn() as conn:
+        cursor = conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+def delete_expenses_by_ids(expense_ids: list):
+    """Delete multiple expenses by their IDs."""
+    if not expense_ids:
+        return 0
+    with get_conn() as conn:
+        placeholders = ','.join('?' * len(expense_ids))
+        cursor = conn.execute(f"DELETE FROM expenses WHERE id IN ({placeholders})", expense_ids)
+        conn.commit()
+        return cursor.rowcount
     
 def add_splitwise_expense(sw_id: int, description: str, amount: float, category: str = None, date: str = None):
     """Insert a Splitwise expense row into DB (ignores duplicates)."""

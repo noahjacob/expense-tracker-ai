@@ -1,4 +1,7 @@
-import { Table, BarChart3, List } from 'lucide-react'
+import { Table, BarChart3, List, TrendingUp, PieChart } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts'
+
+const COLORS = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
 export default function ResultsPanel({ data, type }) {
   if (!data) {
@@ -109,6 +112,134 @@ export default function ResultsPanel({ data, type }) {
         {type === 'text' && (
           <div className="prose max-w-none">
             <p className="text-gray-700 whitespace-pre-wrap">{data.text}</p>
+          </div>
+        )}
+
+        {type === 'trends' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                {data.period_label || 'Spending Trends'}
+              </h3>
+            </div>
+            
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.data}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#6b7280"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    stroke="#6b7280"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`$${value.toFixed(2)}`, 'Amount']}
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="#7c3aed" 
+                    strokeWidth={3}
+                    dot={{ fill: '#7c3aed', r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Spending"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {type === 'categories' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-purple-600" />
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Category Breakdown - {data.period_label}
+                </h3>
+              </div>
+              <div className="text-xl font-bold text-purple-600">
+                Total: ${data.total?.toFixed(2)}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Pie Chart */}
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={data.categories}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={false}
+                      outerRadius={110}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {data.categories?.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name, props) => [
+                        `$${value.toFixed(2)} (${props.payload.percentage.toFixed(1)}%)`,
+                        props.payload.name
+                      ]}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      formatter={(value, entry) => `${entry.payload.name} (${entry.payload.percentage.toFixed(1)}%)`}
+                    />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Category List */}
+              <div className="space-y-3">
+                {data.categories?.map((category, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">{category.name}</p>
+                        <p className="text-xs text-gray-500">{category.count} transactions</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-gray-900">${category.value.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500">{category.percentage.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

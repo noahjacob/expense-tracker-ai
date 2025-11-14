@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, MessageSquare, RefreshCw, Download } from 'luci
 import Chat from './components/Chat'
 import Overview from './components/Overview'
 import ResultsPanel from './components/ResultsPanel'
+import Trends from './components/Trends'
 import './App.css'
 
 function App() {

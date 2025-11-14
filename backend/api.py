@@ -184,6 +184,22 @@ async def chat(message: ChatMessage):
                                     print(f"🔍 Parsed data keys: {structured_data.keys()}")
                             elif tool_name == "get_spending_insights":
                                 structured_data, data_type = parse_insights_result(result_content)
+                            elif tool_name == "get_spending_trends":
+                                # Check if result contains trend data
+                                if result_content.startswith("TREND_DATA:"):
+                                    import json
+                                    trend_json = result_content.replace("TREND_DATA:", "")
+                                    structured_data = json.loads(trend_json)
+                                    data_type = "trends"
+                                    print(f"🔍 Parsed trends data: {len(structured_data.get('data', []))} points")
+                            elif tool_name == "get_category_breakdown":
+                                # Check if result contains category data
+                                if result_content.startswith("CATEGORY_DATA:"):
+                                    import json
+                                    category_json = result_content.replace("CATEGORY_DATA:", "")
+                                    structured_data = json.loads(category_json)
+                                    data_type = "categories"
+                                    print(f"🔍 Parsed category data: {len(structured_data.get('categories', []))} categories")
         
         # Log final response
         print(f"🔍 Final reply length: {len(reply)}")
@@ -288,6 +304,58 @@ async def get_expenses(limit: int = 50):
         """)
         
         return [dict(row) for row in (expenses or [])]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/trends")
+async def get_trends(period: str = "month"):
+    """Get spending trends over time.
+    
+    period: 'week', 'month', or 'year'
+    """
+    try:
+        if period == "week":
+            # Last 7 days, daily breakdown
+            sql = """
+            SELECT date(date) as date, SUM(amount) as amount
+            FROM expenses
+            WHERE date >= date('now', '-7 days')
+            GROUP BY date(date)
+            ORDER BY date ASC
+            """
+        elif period == "year":
+            # Last 12 months, monthly breakdown
+            sql = """
+            SELECT strftime('%Y-%m', date) as date, SUM(amount) as amount
+            FROM expenses
+            WHERE date >= date('now', '-12 months')
+            GROUP BY strftime('%Y-%m', date)
+            ORDER BY date ASC
+            """
+        else:  # month
+            # This month + last month, daily breakdown
+            sql = """
+            SELECT date(date) as date, SUM(amount) as amount
+            FROM expenses
+            WHERE date >= date('now', 'start of month', '-1 month')
+            GROUP BY date(date)
+            ORDER BY date ASC
+            """
+        
+        results = query_db(sql)
+        
+        # Format data for charting
+        data = []
+        for row in (results or []):
+            data.append({
+                "date": row['date'],
+                "amount": float(row['amount']) if row['amount'] else 0
+            })
+        
+        return {
+            "period": period,
+            "data": data
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

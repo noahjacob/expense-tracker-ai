@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from db import init_db, add_splitwise_expense, list_expenses
 from splitwise_client import get_expenses, get_group
 from mappers import map_expense_to_row
@@ -9,6 +10,9 @@ MY_USER_ID = int(os.getenv("MY_USER_ID"))  # put your ID in .env
 
 # Cache for group names to avoid repeated API calls
 group_cache = {}
+
+# Only sync expenses from last 3 months
+THREE_MONTHS_AGO = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
 
 def sync_expenses(limit=5):
     data = get_expenses(limit=limit)
@@ -48,6 +52,11 @@ def sync_expenses(limit=5):
             group_name = group_cache[group_id]
         
         sw_id, desc, amount, category, date = map_expense_to_row(e, MY_USER_ID, group_name)
+        
+        # Skip expenses older than 3 months
+        if date and date < THREE_MONTHS_AGO:
+            continue
+        
         add_splitwise_expense(sw_id, desc, amount, category, date)
         synced_count += 1
     
